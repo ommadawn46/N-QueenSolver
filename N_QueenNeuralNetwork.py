@@ -17,26 +17,27 @@ class N_QueenNeuralNetwork:
     def train(self):
         v, n, u = self.v, self.n, self.u
         for x in range(n):
-            for y in range(n):
-                u[x, y] += self.delta(x, y)
-                if u[x, y] < self.forget_threshold:
-                    u[x] = random.random((n,))
-                vx = np.zeros(n)
-                vx[np.argmax(u[x])] = 1
-                v[x] = vx
+            u[x] += self.delta(x)
+            if np.min(u[x]) < self.forget_threshold:
+                u[x] = random.random((n,))
+            v[x] = np.zeros(n)
+            v[x, np.argmax(u[x])] = 1
 
-    def delta(self, x, y):
+    def delta(self, x):
         v, n = self.v, self.n
-        col_s = np.sum(v.T[y])
-        lr_r = np.arange(-min(x, y), min(n-x, n-y))
-        ur_r = np.arange(-min(x, n-y-1), min(n-x, y+1))
-        lr_s = np.sum(v[x+lr_r, y+lr_r]) - v[x, y]
-        ur_s = np.sum(v[x+ur_r, y-ur_r]) - v[x, y]
+        col_s = np.sum(v, axis=0)
+        lr_s, ur_s = [], []
+        for y in range(n):
+            lr_r = np.arange(-min(x, y), min(n-x, n-y))
+            ur_r = np.arange(-min(x, n-y-1), min(n-x, y+1))
+            lr_s.append(np.sum(v[x+lr_r, y+lr_r]) - v[x, y])
+            ur_s.append(np.sum(v[x+ur_r, y-ur_r]) - v[x, y])
+        lr_s, ur_s = np.array(lr_s), np.array(ur_s)
         col_d = -self.a * (col_s - 1)
         lr_d = -self.b * lr_s
         ur_d = -self.b * ur_s
         col_h = self.c * (col_s == 0)
-        cross_h = self.d * (col_s == 0 and lr_s == 0 and ur_s == 0)
+        cross_h = self.d * ((col_s == 0) & (lr_s == 0) & (ur_s == 0))
         return col_d + ur_d + lr_d + col_h + cross_h
 
     def check(self):
